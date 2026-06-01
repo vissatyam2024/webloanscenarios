@@ -40,7 +40,7 @@ export interface MetricCardProps {
   subtext?: string;
 }
 
-export type FrequencyType = 'monthly' | 'quarterly' | 'yearly';
+export type FrequencyType = 'monthly' | 'quarterly' | 'yearly' | 'lumpsum';
 
 export interface ChartData {
   month: number;

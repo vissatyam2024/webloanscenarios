@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MetricCard } from '@/components/ui/MetricCard';
 import LoanComparisonChart from './LoanComparisonChart';
-import { LoanMetrics as LoanMetricsType } from '@/types/loan.types';
+import { LoanMetrics as LoanMetricsType, FrequencyType } from '@/types/loan.types';
 import { 
   generateAmortizationSchedule, 
   generateSameEMIData,
@@ -35,6 +35,8 @@ interface LoanMetricsProps {
   newRate: number;
   tenure: number;
   extraPayment: number;
+  frequency: FrequencyType;
+  lumpSumYear: number;
 }
 
 export const LoanMetrics: React.FC<LoanMetricsProps> = ({
@@ -43,10 +45,15 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
   currentRate = 0,
   newRate = 0,
   tenure = 0,
-  extraPayment = 0
+  extraPayment = 0,
+  frequency = 'monthly',
+  lumpSumYear = 1
 }) => {
   // Ensure metrics is never undefined
   const safeMetrics = metrics || defaultMetrics;
+
+  const frequencyMonths = frequency === 'monthly' ? 1 : frequency === 'quarterly' ? 3 : 12;
+  const lumpSumTargetMonth = frequency === 'lumpsum' ? lumpSumYear * 12 : undefined;
 
   // Generate chart data for Same Tenure scenario
   const sameTenureData = useMemo(() => {
@@ -73,7 +80,7 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
   // Generate chart data for Same EMI scenario
   const sameEMIData = useMemo(() => {
     if (!loanAmount || !currentRate || !newRate || !tenure) return [];
-    
+
     try {
       return generateSameEMIData(loanAmount, currentRate, newRate, tenure);
     } catch (error) {
@@ -82,43 +89,59 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
     }
   }, [loanAmount, currentRate, newRate, tenure]);
 
+  // Interest saved in Same EMI scenario (keep original EMI, finish earlier at lower rate)
+  const sameEMIInterestSaved = useMemo(() => {
+    if (!loanAmount || !currentRate || !newRate || !tenure) return 0;
+    try {
+      const monthlyRate = currentRate / 12 / 100;
+      const originalEMI = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, tenure) /
+                          (Math.pow(1 + monthlyRate, tenure) - 1);
+      const original = generateAmortizationSchedule(loanAmount, currentRate, tenure);
+      const modified = generateAmortizationSchedule(loanAmount, newRate, tenure * 1.5, 0, originalEMI);
+      const origInterest = original[original.length - 1]?.cumulativeInterest ?? 0;
+      const modInterest = modified[modified.length - 1]?.cumulativeInterest ?? 0;
+      return Math.round(origInterest - modInterest);
+    } catch { return 0; }
+  }, [loanAmount, currentRate, newRate, tenure]);
+
   // Generate chart data for Extra Payment scenario
   const extraPaymentData = useMemo(() => {
     if (!loanAmount || !newRate || !tenure) return [];
-    
+
     try {
       const originalSchedule = generateAmortizationSchedule(loanAmount, newRate, tenure);
-      const withExtraSchedule = generateAmortizationSchedule(loanAmount, newRate, tenure, extraPayment);
-      
+      const withExtraSchedule = generateAmortizationSchedule(loanAmount, newRate, tenure, extraPayment, undefined, frequencyMonths, lumpSumTargetMonth);
+
       return originalSchedule.map((item, index) => {
-        const modifiedEntry = withExtraSchedule[index] || { balance: 0, cumulativeInterest: 0 };
-        
+        const modifiedEntry = withExtraSchedule[index] || { balance: 0, cumulativeInterest: 0, extraPaymentApplied: 0 };
+
         return {
           month: item.month,
           originalBalance: item.balance > 0 ? item.balance : null,
           modifiedBalance: modifiedEntry.balance > 0 ? modifiedEntry.balance : null,
           originalInterest: item.cumulativeInterest,
           modifiedInterest: modifiedEntry.cumulativeInterest,
-          savings: item.balance - modifiedEntry.balance
+          savings: item.balance - modifiedEntry.balance,
+          extraPaymentApplied: modifiedEntry.extraPaymentApplied ?? 0
         };
       });
     } catch (error) {
       console.error("Error generating extraPaymentData:", error);
       return [];
     }
-  }, [loanAmount, newRate, tenure, extraPayment]);
+  }, [loanAmount, newRate, tenure, extraPayment, frequencyMonths, lumpSumTargetMonth]);
 
   // Generate chart data for Combined Impact
   const combinedData = useMemo(() => {
     if (!loanAmount || !currentRate || !newRate || !tenure) return [];
-    
+
     try {
-      return generateCombinedImpactData(loanAmount, currentRate, newRate, tenure, extraPayment);
+      return generateCombinedImpactData(loanAmount, currentRate, newRate, tenure, extraPayment, frequencyMonths, lumpSumTargetMonth);
     } catch (error) {
       console.error("Error generating combinedData:", error);
       return [];
     }
-  }, [loanAmount, currentRate, newRate, tenure, extraPayment]);
+  }, [loanAmount, currentRate, newRate, tenure, extraPayment, frequencyMonths, lumpSumTargetMonth]);
 
   return (
     <Tabs defaultValue="rateImpact">
@@ -183,7 +206,11 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
                   type="tenure"
                   subtext="Reduction in duration"
                 />
-                
+                <MetricCard
+                  title="Interest Saved"
+                  value={sameEMIInterestSaved}
+                  subtext="By finishing earlier"
+                />
               </div>
               {sameEMIData.length > 0 && (
                 <LoanComparisonChart

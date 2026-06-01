@@ -7,7 +7,10 @@ export const calculateLoan = (
   currentRate: number,
   newRate: number,
   tenure: number,
-  extraPayment: number = 0
+  extraPayment: number = 0,
+  frequencyMonths: number = 1,
+  lumpSumTargetMonth?: number,
+  monthlyExtra: number = 0
 ): LoanMetrics => {
   try {
     // Safety checks
@@ -32,17 +35,20 @@ export const calculateLoan = (
     // Calculate new tenure with same EMI
     const newTenure = Math.ceil(Math.log(currentEMI / (currentEMI - principal * nr)) / Math.log(1 + nr));
 
-    // Extra payment impact
+    // Extra payment impact — apply at the correct frequency, or once at lumpSumTargetMonth
     let p = principal;
     let m = 0;
     let totalExtraInterest = 0;
-    const totalPayment = newEMI + extraPayment;
 
     while (p > 0 && m < tenure) {
+      m++;
       const interest = p * nr;
       totalExtraInterest += interest;
-      p -= (totalPayment - interest);
-      m++;
+      const isPaymentMonth = lumpSumTargetMonth !== undefined
+        ? m === lumpSumTargetMonth
+        : m % frequencyMonths === 0;
+      const periodicExtra = extraPayment > 0 && isPaymentMonth ? extraPayment : 0;
+      p -= (newEMI - interest + periodicExtra + monthlyExtra);
     }
 
     return {
@@ -79,13 +85,14 @@ export const calculateLoan = (
   }
 };
 
-interface AmortizationEntry {
+export interface AmortizationEntry {
   month: number;
   payment: number;
   principalPaid: number;
   interestPaid: number;
   balance: number;
   cumulativeInterest: number;
+  extraPaymentApplied: number;
 }
 
 /**
@@ -95,8 +102,11 @@ export const generateAmortizationSchedule = (
   principal: number,
   interestRate: number,
   tenureMonths: number,
-  monthlyExtraPayment: number = 0,
-  fixedEMI?: number
+  extraPayment: number = 0,
+  fixedEMI?: number,
+  frequencyMonths: number = 1,
+  lumpSumTargetMonth?: number,
+  monthlyExtra: number = 0
 ): AmortizationEntry[] => {
   // Safety checks
   if (!principal || principal <= 0) return [];
@@ -118,27 +128,31 @@ export const generateAmortizationSchedule = (
     while (remainingBalance > 0 && month <= tenureMonths * 1.5) { // Add buffer to handle shorter tenures
       const monthlyInterest = remainingBalance * monthlyRate;
       let principalPayment = emi - monthlyInterest;
-      
-      // Add extra payment (if any)
-      if (monthlyExtraPayment > 0) {
-        principalPayment += monthlyExtraPayment;
-      }
-      
+
+      // Apply periodic extra at the correct frequency, or once at lumpSumTargetMonth
+      const isPaymentMonth = lumpSumTargetMonth !== undefined
+        ? month === lumpSumTargetMonth
+        : month % frequencyMonths === 0;
+      const periodicExtra = extraPayment > 0 && isPaymentMonth ? extraPayment : 0;
+      const totalExtra = periodicExtra + monthlyExtra;
+      principalPayment += totalExtra;
+
       // Ensure we don't overpay the loan
       if (principalPayment > remainingBalance) {
         principalPayment = remainingBalance;
       }
-      
+
       remainingBalance -= principalPayment;
       cumulativeInterest += monthlyInterest;
-      
+
       schedule.push({
         month,
         payment: principalPayment + monthlyInterest,
         principalPaid: principalPayment,
         interestPaid: monthlyInterest,
         balance: remainingBalance,
-        cumulativeInterest
+        cumulativeInterest,
+        extraPaymentApplied: totalExtra > 0 ? totalExtra : 0
       });
       
       // Stop if the loan is paid off
@@ -231,7 +245,10 @@ export const generateCombinedImpactData = (
   currentRate: number,
   newRate: number,
   tenureMonths: number,
-  extraPayment: number
+  extraPayment: number,
+  frequencyMonths: number = 1,
+  lumpSumTargetMonth?: number,
+  monthlyExtra: number = 0
 ) => {
   // Safety checks
   if (!principal || principal <= 0) return [];
@@ -261,13 +278,16 @@ export const generateCombinedImpactData = (
       originalEMI // Use same EMI
     );
     
-    // Combined: Rate change with same EMI + extra payment
+    // Combined: Rate change with same EMI + extra payment + monthly multiplier
     const combinedSchedule = generateAmortizationSchedule(
-      principal, 
-      newRate, 
-      tenureMonths * 1.5, // Add buffer for tenure
+      principal,
+      newRate,
+      tenureMonths * 1.5,
       extraPayment,
-      originalEMI // Use same EMI
+      originalEMI,
+      frequencyMonths,
+      lumpSumTargetMonth,
+      monthlyExtra
     );
     
     // Get maximum months
@@ -293,7 +313,8 @@ export const generateCombinedImpactData = (
         originalInterest: original.cumulativeInterest,
         rateChangeInterest: rateChange.cumulativeInterest,
         combinedInterest: combined.cumulativeInterest,
-        savings: original.balance - combined.balance
+        savings: original.balance - combined.balance,
+        extraPaymentApplied: combinedSchedule[i]?.extraPaymentApplied ?? 0
       });
     }
     
@@ -302,4 +323,28 @@ export const generateCombinedImpactData = (
     console.error("Error in generateCombinedImpactData:", error);
     return [];
   }
+};
+
+export interface YearlyData {
+  year: number;
+  principal: number;
+  interest: number;
+}
+
+export const generateYearlyBreakdown = (
+  principal: number,
+  rate: number,
+  tenureMonths: number
+): YearlyData[] => {
+  const schedule = generateAmortizationSchedule(principal, rate, tenureMonths);
+  const yearly: YearlyData[] = [];
+  for (let i = 0; i < schedule.length; i += 12) {
+    const chunk = schedule.slice(i, i + 12);
+    yearly.push({
+      year: Math.floor(i / 12) + 1,
+      principal: Math.round(chunk.reduce((s, e) => s + e.principalPaid, 0)),
+      interest: Math.round(chunk.reduce((s, e) => s + e.interestPaid, 0)),
+    });
+  }
+  return yearly;
 };

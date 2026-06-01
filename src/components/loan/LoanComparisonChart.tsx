@@ -31,6 +31,7 @@ interface ChartData {
   rateChangeInterest?: number;
   combinedInterest?: number;
   savings?: number;
+  extraPaymentApplied?: number;
 }
 
 interface LoanComparisonChartProps {
@@ -42,24 +43,56 @@ interface LoanComparisonChartProps {
   showSavings?: boolean;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+
+
+interface TooltipEntry {
+  name: string;
+  value: number | null;
+  color: string;
+  payload: ChartData;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: number;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
-    const filteredPayload = payload.filter((entry: any) => entry.value !== null && entry.value !== undefined);
-    
+    const filteredPayload = payload.filter((entry) => entry.value !== null && entry.value !== undefined);
     if (filteredPayload.length === 0) return null;
-    
+
+    const extraPaymentApplied: number = payload[0]?.payload?.extraPaymentApplied ?? 0;
+
     return (
       <div className="bg-white p-3 border rounded-lg shadow-lg">
         <p className="text-sm font-semibold mb-2">Month {label}</p>
-        {filteredPayload.map((entry: any) => (
+        {filteredPayload.map((entry) => (
           <p key={entry.name} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {formatCurrency(entry.value)}
+            {entry.name}: {formatCurrency(entry.value ?? 0)}
           </p>
         ))}
+        {extraPaymentApplied > 0 && (
+          <p className="text-sm font-semibold mt-2 text-orange-600">
+            ⬇ Extra Payment: {formatCurrency(extraPaymentApplied)}
+          </p>
+        )}
       </div>
     );
   }
   return null;
+};
+
+interface DotProps {
+  cx?: number;
+  cy?: number;
+  payload?: ChartData;
+}
+
+const ExtraPaymentDot: React.FC<DotProps> = ({ cx, cy, payload }) => {
+  if (!payload?.extraPaymentApplied || payload.extraPaymentApplied <= 0) return null;
+  return <circle cx={cx} cy={cy} r={5} fill="#f97316" stroke="#fff" strokeWidth={2} />;
 };
 
 const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
@@ -109,14 +142,14 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
               <Tooltip content={<CustomTooltip />} />
               <Legend />
               
-              {lineConfig.map((config) => (
+              {lineConfig.map((config, idx) => (
                 <Line
                   key={config.dataKey}
                   type="monotone"
                   dataKey={config.dataKey}
                   name={config.name}
                   stroke={config.color}
-                  dot={false}
+                  dot={idx === 1 ? <ExtraPaymentDot /> : false}
                   connectNulls
                 />
               ))}

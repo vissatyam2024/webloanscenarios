@@ -26,7 +26,7 @@ body {
     /* Subtle lime green for backgrounds */
     --background: 73 90% 85%;
     --card: 0 0% 100%;
-    --popover: 0 0% 98%;
+    --popover: 0 0% 0%;
     
     /* Neutral borders and inputs */
     --border: 0 20% 89.8%;
