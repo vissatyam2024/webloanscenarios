@@ -5,12 +5,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { MetricCard } from '@/components/ui/MetricCard';
 import LoanComparisonChart from './LoanComparisonChart';
 import { LoanMetrics as LoanMetricsType, FrequencyType } from '@/types/loan.types';
-import { 
-  generateAmortizationSchedule, 
+import {
+  generateAmortizationSchedule,
   generateSameEMIData,
   generateCombinedImpactData
 } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/formatters';
+import { chartColors } from '@/styles/theme';
 
 // Default metrics to prevent undefined errors
 const defaultMetrics: LoanMetricsType = {
@@ -182,8 +183,8 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
                   data={sameTenureData}
                   title="Loan Balance Comparison - Same Tenure"
                   lineConfig={[
-                    { dataKey: 'originalBalance', name: 'Original Loan', color: '#8884d8' },
-                    { dataKey: 'modifiedBalance', name: 'New Rate Loan', color: '#82ca9d' }
+                    { dataKey: 'originalBalance', name: 'Original Loan', color: chartColors.original },
+                    { dataKey: 'modifiedBalance', name: 'New Rate Loan', color: chartColors.optimised }
                   ]}
                   showSavings
                 />
@@ -217,8 +218,8 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
                   data={sameEMIData}
                   title="Loan Balance Comparison - Same EMI"
                   lineConfig={[
-                    { dataKey: 'originalBalance', name: 'Original Loan', color: '#8884d8' },
-                    { dataKey: 'modifiedBalance', name: 'Modified (Lower Rate)', color: '#82ca9d' }
+                    { dataKey: 'originalBalance', name: 'Original Loan', color: chartColors.original },
+                    { dataKey: 'modifiedBalance', name: 'Modified (Lower Rate)', color: chartColors.optimised }
                   ]}
                   showInterest
                 />
@@ -261,8 +262,8 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
               data={extraPaymentData}
               title="Impact of Extra Payments"
               lineConfig={[
-                { dataKey: 'originalBalance', name: 'Original Balance', color: '#8884d8' },
-                { dataKey: 'modifiedBalance', name: 'Modified Balance', color: '#82ca9d' }
+                { dataKey: 'originalBalance', name: 'Original Balance', color: chartColors.original },
+                { dataKey: 'modifiedBalance', name: 'Modified Balance', color: chartColors.optimised }
               ]}
               showSavings
             />
@@ -295,9 +296,8 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
               data={combinedData}
               title="Combined Impact - Rate Change & Extra Payments"
               lineConfig={[
-                { dataKey: 'originalBalance', name: 'Original Loan', color: '#8884d8' },
-                //{ dataKey: 'rateChangeBalance', name: 'Lower Rate (Same EMI)', color: '#82ca9d' },
-                { dataKey: 'combinedBalance', name: 'Rate Change + Extra Payments', color: '#ff7300' }
+                { dataKey: 'originalBalance', name: 'Original Loan', color: chartColors.original },
+                { dataKey: 'combinedBalance', name: 'Rate Change + Extra Payments', color: chartColors.combined }
               ]}
               showSavings
             />

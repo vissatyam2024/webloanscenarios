@@ -169,7 +169,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
 
   return (
     <Card>
-      <CardContent className="p-4 bg-gray-50 space-y-4">
+      <CardContent className="p-4 bg-secondary space-y-4">
         {/* New Rate */}
         <div className="space-y-2">
           <EditableField
@@ -204,7 +204,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
             <span className="text-sm font-semibold">
               {emiMultiplier.toFixed(1)}×
               {monthlyMultiplierExtra > 0 && (
-                <span className="ml-1 text-xs text-emerald-600 font-normal">
+                <span className="ml-1 text-xs text-primary font-normal">
                   (+{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(monthlyMultiplierExtra)}/mo)
                 </span>
               )}

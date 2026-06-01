@@ -16,11 +16,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                         
   return (
     <div className="p-3 border rounded-lg">
-      <div className="text-sm text-gray-600">{title}</div>
+      <div className="text-sm text-muted-foreground">{title}</div>
       <div className="text-xl font-bold">
         {formattedValue}
       </div>
-      {subtext && <div className="text-xs text-gray-500">{subtext}</div>}
+      {subtext && <div className="text-xs text-muted-foreground">{subtext}</div>}
     </div>
   );
 };

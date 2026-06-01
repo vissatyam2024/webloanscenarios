@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/utils/formatters';
 import { YearlyData } from '@/utils/calculations';
+import { chartColors } from '@/styles/theme';
 
 interface TooltipEntry {
   dataKey: string;
@@ -31,11 +32,11 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   const principal = payload.find(p => p.dataKey === 'principal')?.value ?? 0;
   const interest = payload.find(p => p.dataKey === 'interest')?.value ?? 0;
   return (
-    <div className="bg-white p-3 border rounded-lg shadow-lg text-sm">
+    <div className="bg-card border border-border p-3 rounded-lg shadow-lg text-sm">
       <p className="font-semibold mb-1">Year {label}</p>
-      <p style={{ color: '#10b981' }}>Principal: {formatCurrency(principal)}</p>
-      <p style={{ color: '#f97316' }}>Interest: {formatCurrency(interest)}</p>
-      <p className="font-medium mt-1 border-t pt-1">Total: {formatCurrency(principal + interest)}</p>
+      <p style={{ color: chartColors.principal }}>Principal: {formatCurrency(principal)}</p>
+      <p style={{ color: chartColors.interest }}>Interest: {formatCurrency(interest)}</p>
+      <p className="font-medium mt-1 border-t border-border pt-1">Total: {formatCurrency(principal + interest)}</p>
     </div>
   );
 };
@@ -49,8 +50,8 @@ const YearlyBreakdownChart: React.FC<YearlyBreakdownChartProps> = ({ data }) => 
 
   return (
     <div className="flex flex-col h-full">
-      <p className="text-sm font-semibold text-gray-800">Year by Year Breakdown</p>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="text-sm font-semibold text-foreground">Year by Year Breakdown</p>
+      <p className="text-xs text-muted-foreground mb-2">
         See that? Interest eats up your early years. The good news — it shrinks over time.
       </p>
       <div style={{ height: '400px' }}>
@@ -69,8 +70,8 @@ const YearlyBreakdownChart: React.FC<YearlyBreakdownChartProps> = ({ data }) => 
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="principal" name="Principal" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
-            <Bar dataKey="interest" name="Interest" stackId="a" fill="#f97316" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="principal" name="Principal" stackId="a" fill={chartColors.principal} radius={[0, 0, 0, 0]} />
+            <Bar dataKey="interest" name="Interest" stackId="a" fill={chartColors.interest} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
