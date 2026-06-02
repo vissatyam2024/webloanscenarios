@@ -169,7 +169,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
 
   return (
     <Card>
-      <CardContent className="p-4 bg-secondary space-y-4">
+      <CardContent className="p-4 bg-white/10 space-y-4">
         {/* New Rate */}
         <div className="space-y-2">
           <EditableField

@@ -128,14 +128,18 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
               data={data}
               margin={{ top: 15, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
               <XAxis
                 dataKey="month"
                 label={{ value: 'Months', position: 'insideBottom', offset: -2 }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
               />
               <YAxis
                 tickFormatter={formatCurrency}
                 label={{ value: 'Amount (₹)', angle: -90, position: 'insideLeft', offset: -12 }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+                tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend />

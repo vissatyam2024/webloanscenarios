@@ -57,16 +57,20 @@ const YearlyBreakdownChart: React.FC<YearlyBreakdownChartProps> = ({ data }) => 
       <div style={{ height: '400px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 15 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
             <XAxis
               dataKey="year"
               tick={{ fontSize: 11 }}
               label={{ value: 'Year', position: 'insideBottom', offset: -8, fontSize: 11 }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
             />
             <YAxis
               tickFormatter={formatCurrency}
               tick={{ fontSize: 10 }}
               width={70}
+              axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12 }} />
