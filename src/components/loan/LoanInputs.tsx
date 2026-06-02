@@ -200,7 +200,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
         {/* EMI Multiplier */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">EMI Multiplier</span>
+            <span className="text-sm font-medium text-foreground">EMI Multiplier</span>
             <span className="text-sm font-bold">
               {emiMultiplier.toFixed(1)}×
               {monthlyMultiplierExtra > 0 && (
@@ -222,7 +222,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
         {/* Extra Payment */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700">Extra Payment</span>
+            <span className="text-sm font-medium text-foreground">Extra Payment</span>
             <div className="flex rounded border border-border overflow-hidden text-xs">
               <button
                 className={`px-2 py-1 font-medium transition-colors ${extraPaymentMode === 'amount' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground'}`}
