@@ -50,8 +50,8 @@ const YearlyBreakdownChart: React.FC<YearlyBreakdownChartProps> = ({ data }) => 
 
   return (
     <div className="flex flex-col h-full">
-      <p className="text-sm font-semibold text-foreground">Year by Year Breakdown</p>
-      <p className="text-xs text-muted-foreground mb-2">
+      <p className="text-base font-bold text-foreground">Year by Year Breakdown</p>
+      <p className="text-xs font-medium text-muted-foreground mb-2">
         See that? Interest eats up your early years. The good news — it shrinks over time.
       </p>
       <div style={{ height: '400px' }}>

@@ -133,11 +133,11 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                   onChange={handleYearChange}
                   onBlur={handleComplete}
                   onKeyDown={handleKeyDown}
-                  className="w-full px-2 py-1 text-sm border rounded"
+                  className="w-full px-2 py-1 text-sm border border-input rounded text-foreground"
                   autoFocus
                   maxLength={2}
                 />
-                <span className="text-xs text-gray-500 absolute right-1 top-1.5">y</span>
+                <span className="text-xs font-medium text-muted-foreground absolute right-1 top-1.5">y</span>
               </div>
               <div className="relative w-16">
                 <input
@@ -146,10 +146,10 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                   onChange={handleMonthChange}
                   onBlur={handleComplete}
                   onKeyDown={handleKeyDown}
-                  className="w-full px-2 py-1 text-sm border rounded"
+                  className="w-full px-2 py-1 text-sm border border-input rounded text-foreground"
                   maxLength={2}
                 />
-                <span className="text-xs text-gray-500 absolute right-1 top-1.5">m</span>
+                <span className="text-xs font-medium text-muted-foreground absolute right-1 top-1.5">m</span>
               </div>
             </div>
           ) : (
@@ -160,7 +160,7 @@ export const EditableField: React.FC<EditableFieldProps> = ({
                 onChange={handleInputChange}
                 onBlur={handleComplete}
                 onKeyDown={handleKeyDown}
-                className="w-24 px-2 py-1 text-sm border rounded"
+                className="w-24 px-2 py-1 text-sm border border-input rounded text-foreground"
                 autoFocus
                 maxLength={maxLength}
               />
@@ -169,8 +169,8 @@ export const EditableField: React.FC<EditableFieldProps> = ({
         </>
       ) : (
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">{formatted}</span>
-          <Edit2 className="w-4 h-4 text-gray-400 cursor-pointer" onClick={startEditing} />
+          <span className="text-base font-bold">{formatted}</span>
+          <Edit2 className="w-4 h-4 text-muted-foreground cursor-pointer" onClick={startEditing} />
         </div>
       )}
       {action}

@@ -201,7 +201,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">EMI Multiplier</span>
-            <span className="text-sm font-semibold">
+            <span className="text-sm font-bold">
               {emiMultiplier.toFixed(1)}×
               {monthlyMultiplierExtra > 0 && (
                 <span className="ml-1 text-xs text-primary font-normal">
@@ -223,15 +223,15 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-gray-700">Extra Payment</span>
-            <div className="flex rounded border overflow-hidden text-xs">
+            <div className="flex rounded border border-border overflow-hidden text-xs">
               <button
-                className={`px-2 py-1 ${extraPaymentMode === 'amount' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600'}`}
+                className={`px-2 py-1 font-medium transition-colors ${extraPaymentMode === 'amount' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground'}`}
                 onClick={() => onExtraPaymentModeChange('amount')}
               >
                 ₹ Amount
               </button>
               <button
-                className={`px-2 py-1 ${extraPaymentMode === 'emi' ? 'bg-gray-800 text-white' : 'bg-white text-gray-600'}`}
+                className={`px-2 py-1 font-medium transition-colors ${extraPaymentMode === 'emi' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground'}`}
                 onClick={() => onExtraPaymentModeChange('emi')}
               >
                 × EMIs
@@ -268,7 +268,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
               />
               {frequency === 'lumpsum' && (
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-sm text-gray-600">Pay after</span>
+                  <span className="text-sm text-muted-foreground">Pay after</span>
                   <input
                     type="number"
                     min={1}
@@ -280,9 +280,9 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
                     }}
                     className="w-16 px-2 py-1 text-sm border rounded"
                   />
-                  <span className="text-sm text-gray-600">year{lumpSumYear !== 1 ? 's' : ''}</span>
+                  <span className="text-sm text-muted-foreground">year{lumpSumYear !== 1 ? 's' : ''}</span>
                   {lumpSumYear >= tenureYears && (
-                    <span className="text-xs text-amber-600">
+                    <span className="text-xs text-destructive">
                       Note: Loan ends at year {tenureYears} — payment may not apply
                     </span>
                   )}
@@ -300,7 +300,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
                   <option key={n} value={n}>{n === 0 ? '0 (off)' : `${n} EMI${n !== 1 ? 's' : ''}`}</option>
                 ))}
               </select>
-              <span className="text-sm text-gray-500">per</span>
+              <span className="text-sm text-muted-foreground">per</span>
               <select
                 value={frequency === 'lumpsum' ? 'yearly' : frequency}
                 onChange={e => onFrequencyChange(e.target.value as FrequencyType)}
@@ -311,7 +311,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
                 <option value="yearly">year</option>
               </select>
               {extraEmiCount > 0 && currentEMI > 0 && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   ≈ {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(extraEmiCount * currentEMI)}
                 </span>
               )}

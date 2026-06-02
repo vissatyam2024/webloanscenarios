@@ -109,7 +109,7 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
     return (
       <Card>
         <CardContent className="p-4">
-          <h3 className="text-lg font-semibold mb-4">{title}</h3>
+          <h3 className="text-lg font-bold mb-4">{title}</h3>
           <div className="h-[300px] w-full flex items-center justify-center bg-secondary border rounded-md">
             <p className="text-muted-foreground">No data available for chart</p>
           </div>
@@ -121,7 +121,7 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
   return (
     <Card>
       <CardContent className="p-4">
-        <h3 className="text-lg font-semibold mb-4">{title}</h3>
+        <h3 className="text-lg font-bold mb-4">{title}</h3>
         <div style={{ height: `${height}px`, width: '100%' }}>
           <ResponsiveContainer>
             <LineChart

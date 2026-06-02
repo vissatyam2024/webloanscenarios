@@ -22,7 +22,7 @@ const LoanSummary: React.FC<LoanSummaryProps> = ({
   return (
     <Card className="card-enhanced">
       <CardContent className="p-4">
-        <h4 className="text-lg font-semibold mb-4">Current Loan Summary</h4>
+        <h4 className="text-lg font-bold mb-4">Current Loan Summary</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Principal Amount"

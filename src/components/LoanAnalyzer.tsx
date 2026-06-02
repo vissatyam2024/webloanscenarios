@@ -100,7 +100,7 @@ const LoanAnalyzer: React.FC = () => {
     <div className="min-h-screen w-full">
       <div className="w-full pt-8 pb-12 px-4 md:px-8 xl:px-10 space-y-3">
         <div className="flex items-center justify-center">
-          <h1 className="text-xl font-bold text-foreground border-b-2 border-foreground pb-1">
+          <h1 className="text-2xl font-bold text-foreground border-b-2 border-foreground pb-1">
             Home Loan Analyzer (Calculate - Compare - Save)
           </h1>
           <CalculatorInfoModal />
@@ -110,7 +110,7 @@ const LoanAnalyzer: React.FC = () => {
           {/* Card 1 — Current Loan */}
           <Card>
             <CardContent className="p-4 space-y-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Loan</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Current Loan</p>
               <PrimaryInputs
                 loanAmount={loanAmount}
                 tenure={tenure}
@@ -134,7 +134,7 @@ const LoanAnalyzer: React.FC = () => {
           {/* Card 2 — Compare & Optimise */}
           <Card>
             <CardContent className="p-4 space-y-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compare & Optimise</p>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Compare & Optimise</p>
               <ComparisonInputs
                 currentRate={currentRate}
                 currentEMI={baseEMI}
