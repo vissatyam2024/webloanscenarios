@@ -6,36 +6,36 @@
 
 @layer base {
   :root {
-    /* SURE Design System — Light Paper Theme                          */
+    /* SURE Design System — Dark Theme (graphite + lime)               */
     /* To retheme: update src/styles/theme.ts + these HSL values.     */
 
-    --background:              48 25% 92%;   /* #F0EEE6 warm ivory canvas */
-    --foreground:              43 9% 11%;    /* #1F1E1A warm near-black    */
+    --background:              0 3% 6%;      /* #100F0F graphite canvas  */
+    --foreground:              0 0% 84%;     /* #D7D7D7 soft white body  */
 
-    --card:                    50 38% 97%;   /* #FAF9F4 off-white cards    */
-    --card-foreground:         43 9% 11%;
+    --card:                    200 37% 11%;  /* #122027 dark teal cards  */
+    --card-foreground:         0 0% 84%;
 
-    --popover:                 50 38% 97%;
-    --popover-foreground:      43 9% 11%;
+    --popover:                 200 37% 11%;
+    --popover-foreground:      0 0% 84%;
 
-    --primary:                 76 70% 38%;   /* #81A51D grass green        */
-    --primary-foreground:      43 9% 11%;    /* dark ink on green          */
+    --primary:                 76 100% 78%;  /* #E2FF90 bright lime      */
+    --primary-foreground:      0 3% 6%;      /* dark ink on lime         */
 
-    --secondary:               47 25% 89%;   /* #EAE7DC surface-soft       */
-    --secondary-foreground:    43 9% 11%;
+    --secondary:               0 0% 16%;    /* #282828 dark input surf  */
+    --secondary-foreground:    0 0% 84%;
 
-    --muted:                   47 25% 89%;   /* #EAE7DC                    */
-    --muted-foreground:        45 8% 29%;    /* #514E45 warm taupe         */
+    --muted:                   0 0% 16%;    /* #282828                  */
+    --muted-foreground:        200 6% 64%;   /* #9CA4A8 slate metadata   */
 
-    --accent:                  47 25% 89%;   /* #EAE7DC                    */
-    --accent-foreground:       43 9% 11%;
+    --accent:                  0 0% 16%;
+    --accent-foreground:       0 0% 84%;
 
-    --destructive:             11 59% 45%;   /* #B5462E terracotta         */
-    --destructive-foreground:  50 38% 97%;
+    --destructive:             0 99% 67%;    /* #FE5A5A coral error      */
+    --destructive-foreground:  0 3% 6%;
 
-    --border:                  47 20% 82%;   /* #DAD6C8 warm hairline      */
-    --input:                   44 8% 46%;    /* #807B6D control edge       */
-    --ring:                    77 84% 15%;   /* #354706 focus ring         */
+    --border:                  187 17% 19%;  /* #29383A teal hairline    */
+    --input:                   194 10% 41%;  /* #5E6E73 control edge     */
+    --ring:                    76 100% 78%;  /* #E2FF90 lime focus ring  */
 
     --radius: 0.75rem;
   }
