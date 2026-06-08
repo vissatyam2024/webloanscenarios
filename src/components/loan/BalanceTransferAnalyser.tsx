@@ -49,9 +49,9 @@ function calcNOI(state: State): number {
   return state === 'Maharashtra' ? 18000 : 0;
 }
 
-function calcLegalTech(state: State, lenderType: LenderType): number {
+function calcLegalTech(lenderType: LenderType, loanAmount: number): number {
   if (lenderType === 'Private') return 0;
-  return state === 'Gujarat' ? 5000 : 7000;
+  return loanAmount >= 10000000 ? 22000 : 15000;
 }
 
 function calcProcessingFee(state: State, lenderType: LenderType): number {
@@ -129,7 +129,7 @@ const BalanceTransferAnalyser: React.FC<BalanceTransferAnalyserProps> = ({
   useEffect(() => {
     setModt(calcMODT(selectedState, loanAmount));
     setNoi(calcNOI(selectedState));
-    setLegalTech(calcLegalTech(selectedState, lenderType));
+    setLegalTech(calcLegalTech(lenderType, loanAmount));
     setProcessingFee(calcProcessingFee(selectedState, lenderType));
   }, [selectedState, lenderType, loanAmount]);
 
@@ -214,7 +214,7 @@ const BalanceTransferAnalyser: React.FC<BalanceTransferAnalyserProps> = ({
           />
           <CostField
             label="Legal & Technical"
-            hint={lenderType === 'Private' ? 'Nil for Private lenders' : selectedState === 'Gujarat' ? '₹5,000 (Gujarat PSU)' : '₹7,000 (PSU)'}
+            hint={lenderType === 'Private' ? 'Nil for Private lenders' : loanAmount >= 10000000 ? '₹22,000 PSU (loan ≥ ₹1 Cr)' : '₹15,000 PSU (loan < ₹1 Cr)'}
             value={legalTech}
             onChange={setLegalTech}
           />
