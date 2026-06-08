@@ -6,6 +6,7 @@ import { PrimaryInputs, ComparisonInputs } from './loan/LoanInputs';
 import LoanSummary from './loan/LoanSummary';
 import LoanMetrics from './loan/LoanMetrics';
 import AmortizationTable from './loan/AmortizationTable';
+import BalanceTransferAnalyser from './loan/BalanceTransferAnalyser';
 import YearlyBreakdownChart from './loan/YearlyBreakdownChart';
 import { calculateLoan, generateAmortizationSchedule, generateYearlyBreakdown } from '@/utils/calculations';
 import { FrequencyType, LoanMetrics as LoanMetricsType } from '@/types/loan.types';
@@ -167,6 +168,14 @@ const LoanAnalyzer: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Balance Transfer Cost Analyser */}
+        <BalanceTransferAnalyser
+          loanAmount={loanAmount}
+          currentEMI={metrics.currentEMI || 0}
+          newEMI={metrics.newEMI || 0}
+          interestSaving={metrics.interestSaving || 0}
+        />
 
         {/* Amortization schedules side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
