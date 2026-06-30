@@ -38,7 +38,25 @@ interface LoanMetricsProps {
   extraPayment: number;
   frequency: FrequencyType;
   lumpSumYear: number;
+  emiInputMode?: 'tenure' | 'emi';
+  setEMI?: number;
 }
+
+const TenureCard: React.FC<{ title: string; months: number; subtext?: string }> = ({ title, months, subtext }) => {
+  const yrs = Math.floor(months / 12);
+  const mo = months % 12;
+  const label = months <= 0 ? '—' : mo > 0 ? `${yrs} yrs ${mo} mo` : `${yrs} yrs`;
+  return (
+    <div className="p-3 border border-border/40 rounded-lg">
+      <div className="text-sm font-medium text-muted-foreground">{title}</div>
+      <div className="text-xl font-extrabold">{label}</div>
+      {months > 0
+        ? <div className="text-xs text-muted-foreground">{months} months{subtext ? ` • ${subtext}` : ''}</div>
+        : subtext && <div className="text-xs text-muted-foreground">{subtext}</div>
+      }
+    </div>
+  );
+};
 
 export const LoanMetrics: React.FC<LoanMetricsProps> = ({
   metrics = defaultMetrics,
@@ -48,7 +66,9 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
   tenure = 0,
   extraPayment = 0,
   frequency = 'monthly',
-  lumpSumYear = 1
+  lumpSumYear = 1,
+  emiInputMode = 'tenure',
+  setEMI = 0,
 }) => {
   // Ensure metrics is never undefined
   const safeMetrics = metrics || defaultMetrics;
@@ -95,15 +115,17 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
     if (!loanAmount || !currentRate || !newRate || !tenure) return 0;
     try {
       const monthlyRate = currentRate / 12 / 100;
-      const originalEMI = loanAmount * monthlyRate * Math.pow(1 + monthlyRate, tenure) /
-                          (Math.pow(1 + monthlyRate, tenure) - 1);
+      const originalEMI = (emiInputMode === 'emi' && setEMI > 0)
+        ? setEMI
+        : loanAmount * monthlyRate * Math.pow(1 + monthlyRate, tenure) /
+          (Math.pow(1 + monthlyRate, tenure) - 1);
       const original = generateAmortizationSchedule(loanAmount, currentRate, tenure);
       const modified = generateAmortizationSchedule(loanAmount, newRate, tenure * 1.5, 0, originalEMI);
       const origInterest = original[original.length - 1]?.cumulativeInterest ?? 0;
       const modInterest = modified[modified.length - 1]?.cumulativeInterest ?? 0;
       return Math.round(origInterest - modInterest);
     } catch { return 0; }
-  }, [loanAmount, currentRate, newRate, tenure]);
+  }, [loanAmount, currentRate, newRate, tenure, emiInputMode, setEMI]);
 
   // Generate chart data for Extra Payment scenario
   const extraPaymentData = useMemo(() => {
@@ -165,7 +187,7 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
                 <MetricCard
                   title="New EMI"
                   value={safeMetrics.newEMI || 0}
-                  subtext={`vs ${formatCurrency(safeMetrics.currentEMI || 0)}`}
+                  subtext={`vs ${formatCurrency(emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0)} (Old EMI)`}
                 />
                 <MetricCard
                   title="Monthly Savings"
@@ -195,16 +217,14 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
           <TabsContent value="sameEMI">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <MetricCard
+                <TenureCard
                   title="New Tenure"
-                  value={safeMetrics.newTenure || 0}
-                  type="tenure"
-                  subtext="With current EMI"
+                  months={safeMetrics.newTenure || 0}
+                  subtext={`With ${formatCurrency(emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0)} EMI`}
                 />
-                <MetricCard
+                <TenureCard
                   title="Time Saved"
-                  value={safeMetrics.tenureReduction || 0}
-                  type="tenure"
+                  months={safeMetrics.tenureReduction || 0}
                   subtext="Reduction in duration"
                 />
                 <MetricCard
@@ -233,10 +253,9 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
         <div className="space-y-6">
           <div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <MetricCard
+              <TenureCard
                 title="Time Saved"
-                value={safeMetrics.extraTenureReduction || 0}
-                type="tenure"
+                months={safeMetrics.extraTenureReduction || 0}
                 subtext="Reduction in tenure"
               />
               <MetricCard
@@ -279,10 +298,9 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
               value={safeMetrics.totalSaving || 0}
               subtext="Combined interest savings"
             />
-            <MetricCard
+            <TenureCard
               title="Total Time Saved"
-              value={(safeMetrics.tenureReduction || 0) + (safeMetrics.extraTenureReduction || 0)}
-              type="tenure"
+              months={(safeMetrics.tenureReduction || 0) + (safeMetrics.extraTenureReduction || 0)}
               subtext="Overall reduction"
             />
             <MetricCard

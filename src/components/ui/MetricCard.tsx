@@ -15,7 +15,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                         type === 'percent' ? `${value}%` : value;
                         
   return (
-    <div className="p-3 border rounded-lg">
+    <div className="p-3 border border-border/40 rounded-lg">
       <div className="text-sm font-medium text-muted-foreground">{title}</div>
       <div className="text-xl font-extrabold">
         {formattedValue}

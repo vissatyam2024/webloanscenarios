@@ -23,11 +23,11 @@ function calcMODT(state: State, loanAmount: number): number {
   switch (state) {
     case 'Maharashtra':    return Math.round(loanAmount * 0.003);
     case 'Telangana':      return Math.min(Math.round(loanAmount * 0.005), 50000);
-    case 'Karnataka':      return Math.round(loanAmount * 0.0065);
+    case 'Karnataka':      return Math.round(loanAmount * 0.0055);
     case 'Andhra Pradesh': return Math.round(loanAmount * 0.0055);
     case 'Delhi/Gurgaon':  return 0;
     case 'Gujarat':        return Math.round(loanAmount * 0.0035);
-    case 'West Bengal':    return 0;
+    case 'West Bengal':    return Math.round(loanAmount * 0.003);
     default:               return Math.round(loanAmount * 0.003);
   }
 }

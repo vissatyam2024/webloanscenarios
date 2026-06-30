@@ -11,36 +11,53 @@ interface LoanSummaryProps {
   totalInterest: number;
   totalAmount: number;
   loanAmount: number;
+  emiInputMode?: 'tenure' | 'emi';
+  effectiveTenure?: number;
 }
 
 const LoanSummary: React.FC<LoanSummaryProps> = ({
   currentEMI,
   totalInterest,
   totalAmount,
-  loanAmount
+  loanAmount,
+  emiInputMode = 'tenure',
+  effectiveTenure = 0,
 }) => {
+  const tenureYears = Math.floor(effectiveTenure / 12);
+  const tenureMonths = effectiveTenure % 12;
+  const tenureLabel = tenureMonths > 0
+    ? `${tenureYears} yrs ${tenureMonths} mo`
+    : `${tenureYears} yrs`;
+
   return (
     <Card className="card-enhanced">
       <CardContent className="p-4">
-        <h4 className="text-lg font-bold mb-4">Current Loan Summary</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard
             title="Principal Amount"
             value={loanAmount}
             type="currency"
-            subtext="Total loan amount"
+            // subtext="Total loan amount"
           />
-          <MetricCard
-            title="Monthly EMI"
-            value={currentEMI}
-            type="currency"
-            subtext="Current monthly payment"
-          />
+          {emiInputMode === 'tenure' ? (
+            <MetricCard
+              title="Current EMI"
+              value={currentEMI}
+              type="currency"
+              // subtext="Current monthly payment"
+            />
+          ) : (
+            <div className="p-3 border border-border/40 rounded-lg">
+              <div className="text-sm font-medium text-muted-foreground">Loan Tenure</div>
+              <div className="text-xl font-extrabold">{tenureLabel}</div>
+              <div className="text-xs text-muted-foreground">{effectiveTenure} months • Calculated from EMI</div>
+            </div>
+          )}
           <MetricCard
             title="Total Interest"
             value={totalInterest}
             type="currency"
-            subtext="Interest over loan term"
+            // subtext="Interest over loan term"
           />
           <MetricCard
             title="Total Amount"
