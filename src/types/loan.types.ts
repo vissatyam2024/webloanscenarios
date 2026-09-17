@@ -38,6 +38,8 @@ export interface MetricCardProps {
   value: number;
   type?: 'currency' | 'tenure' | 'percent' ;
   subtext?: string;
+  /** For type="tenure": show "{value} months" as a prefix on the subtext line. */
+  showMonthsSuffix?: boolean;
 }
 
 export type FrequencyType = 'monthly' | 'quarterly' | 'yearly' | 'lumpsum';

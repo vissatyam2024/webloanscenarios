@@ -85,6 +85,26 @@ export const calculateLoan = (
   }
 };
 
+export const calculateSIPFutureValue = (
+  monthlyAmount: number,
+  months: number,
+  annualRate: number = 12
+): { futureValue: number; totalInvested: number; totalGains: number } => {
+  if (!monthlyAmount || monthlyAmount <= 0 || !months || months <= 0) {
+    return { futureValue: 0, totalInvested: 0, totalGains: 0 };
+  }
+  const r = annualRate / 12 / 100;
+  const futureValue = r === 0
+    ? monthlyAmount * months
+    : monthlyAmount * ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+  const totalInvested = monthlyAmount * months;
+  return {
+    futureValue: Math.round(futureValue),
+    totalInvested: Math.round(totalInvested),
+    totalGains: Math.round(futureValue - totalInvested),
+  };
+};
+
 export interface AmortizationEntry {
   month: number;
   payment: number;

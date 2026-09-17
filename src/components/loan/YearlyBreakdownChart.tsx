@@ -32,11 +32,28 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
   const principal = payload.find(p => p.dataKey === 'principal')?.value ?? 0;
   const interest = payload.find(p => p.dataKey === 'interest')?.value ?? 0;
   return (
-    <div className="bg-card border border-border p-3 rounded-lg shadow-lg text-sm">
-      <p className="font-semibold mb-1">Year {label}</p>
-      <p style={{ color: chartColors.principal }}>Principal: {formatCurrency(principal)}</p>
-      <p style={{ color: chartColors.interest }}>Interest: {formatCurrency(interest)}</p>
-      <p className="font-medium mt-1 border-t border-border pt-1">Total: {formatCurrency(principal + interest)}</p>
+    <div className="bg-card border border-border p-3.5 rounded-xl shadow-lg min-w-[160px]">
+      <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide mb-2">Year {label}</p>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: chartColors.principal }} />
+            Principal
+          </span>
+          <span className="text-sm font-bold tabular-nums" style={{ color: chartColors.principal }}>{formatCurrency(principal)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: chartColors.interest }} />
+            Interest
+          </span>
+          <span className="text-sm font-bold tabular-nums" style={{ color: chartColors.interest }}>{formatCurrency(interest)}</span>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-4 mt-2 pt-2 border-t border-border">
+        <span className="text-xs font-semibold text-foreground">Total</span>
+        <span className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(principal + interest)}</span>
+      </div>
     </div>
   );
 };
@@ -50,30 +67,36 @@ const YearlyBreakdownChart: React.FC<YearlyBreakdownChartProps> = ({ data }) => 
 
   return (
     <div className="flex flex-col h-full">
-      <p className="text-base font-bold text-foreground">Year by Year Breakdown</p>
-      <p className="text-xs font-medium text-muted-foreground mb-2">
-        Interest and Prinicple paid over time.
+      <h3 className="text-xs font-bold text-foreground uppercase tracking-wide mb-1">Year by Year Breakdown</h3>
+      <p className="text-xs text-muted-foreground mb-4">
+        Principal and interest paid over time.
       </p>
       <div style={{ height: '400px' }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 5, right: 10, left: 10, bottom: 15 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
+          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.10)" strokeWidth={0.5} />
             <XAxis
               dataKey="year"
-              tick={{ fontSize: 11 }}
-              label={{ value: 'Year', position: 'insideBottom', offset: -8, fontSize: 11 }}
-              axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
-              tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              tickMargin={8}
             />
             <YAxis
               tickFormatter={formatCurrency}
-              tick={{ fontSize: 10 }}
-              width={70}
-              axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
-              tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              axisLine={false}
+              tickLine={false}
+              width={64}
+              tickCount={5}
             />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend verticalAlign="top" wrapperStyle={{ fontSize: 12 }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--secondary) / 0.5)' }} />
+            <Legend
+              verticalAlign="top"
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: 12, paddingBottom: 8, color: 'hsl(var(--muted-foreground))' }}
+            />
             <Bar dataKey="principal" name="Principal" stackId="a" fill={chartColors.principal} radius={[0, 0, 0, 0]} />
             <Bar dataKey="interest" name="Interest" stackId="a" fill={chartColors.interest} radius={[3, 3, 0, 0]} />
           </BarChart>

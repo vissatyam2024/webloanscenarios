@@ -1,12 +1,11 @@
 // src/components/LoanAnalyzer.tsx
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { PrimaryInputs, ComparisonInputs } from './loan/LoanInputs';
-import LoanSummary from './loan/LoanSummary';
 import LoanMetrics from './loan/LoanMetrics';
 import AmortizationTable from './loan/AmortizationTable';
-import BalanceTransferAnalyser from './loan/BalanceTransferAnalyser';
+// import BalanceTransferAnalyser from './loan/BalanceTransferAnalyser';
 import YearlyBreakdownChart from './loan/YearlyBreakdownChart';
 import { calculateLoan, generateAmortizationSchedule, generateYearlyBreakdown } from '@/utils/calculations';
 import { FrequencyType, LoanMetrics as LoanMetricsType } from '@/types/loan.types';
@@ -48,6 +47,7 @@ const LoanAnalyzer: React.FC = () => {
   const [isYearMode, setIsYearMode] = useState<boolean>(true);
   const [currentRate, setCurrentRate] = useState<number>(9);
   const [newRate, setNewRate] = useState<number>(7.5);
+  const [newTenure, setNewTenure] = useState<number>(300);
 
   const [extraPayment, setExtraPayment] = useState<number>(0);
   const [frequency, setFrequency] = useState<FrequencyType>('yearly');
@@ -74,6 +74,14 @@ const LoanAnalyzer: React.FC = () => {
     if (emiInputMode === 'tenure' || emiInput <= 0) return tenure;
     return deriveTenure(loanAmount, currentRate, emiInput);
   }, [emiInputMode, emiInput, tenure, loanAmount, currentRate]);
+
+  // New Tenure (Compare & Optimise) defaults to the current loan's tenure,
+  // and re-syncs whenever that tenure changes — same pattern as newRate
+  // resetting to currentRate on handleCurrentRateChange — but stays
+  // independently editable in between.
+  useEffect(() => {
+    setNewTenure(effectiveTenure);
+  }, [effectiveTenure]);
 
   const frequencyMonths = frequency === 'monthly' ? 1 : frequency === 'quarterly' ? 3 : 12;
   const lumpSumTargetMonth = frequency === 'lumpsum' ? lumpSumYear * 12 : undefined;
@@ -129,99 +137,114 @@ const LoanAnalyzer: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full">
-      <div className="w-full pt-8 pb-12 px-4 md:px-8 xl:px-10 space-y-3">
-        <div className="flex items-center justify-center">
-          <h1 className="text-2xl font-bold text-foreground border-b-2 border-foreground pb-1">
-            Home Loan Analyzer (Calculate - Compare - Save)
-          </h1>
-          <CalculatorInfoModal />
-        </div>
+      <div className="flex items-center justify-center gap-2 py-3 px-4 border-b border-border">
+        <h1 className="text-sm font-bold text-foreground tracking-wide">
+          Home Loan Analyzer
+          <span className="text-muted-foreground font-medium hidden sm:inline"> · Calculate · Compare · Save</span>
+        </h1>
+        <CalculatorInfoModal />
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {/* Card 1 — Current Loan */}
+      <div className="flex flex-col lg:flex-row lg:items-start">
+        {/* Left rail — inputs */}
+        <aside className="w-full lg:w-2/5 lg:shrink-0 lg:sticky lg:top-0 bg-card border-b lg:border-b-0 lg:border-r border-border flex flex-col gap-4 px-4 py-4 lg:px-6 lg:py-5">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs font-extrabold text-foreground tracking-widest uppercase whitespace-nowrap">Current Loan</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <PrimaryInputs
+              loanAmount={loanAmount}
+              tenure={tenure}
+              effectiveTenure={effectiveTenure}
+              isYearMode={isYearMode}
+              currentRate={currentRate}
+              emiInputMode={emiInputMode}
+              emiInput={emiInput}
+              computedEMI={baseEMI}
+              onLoanAmountChange={setLoanAmount}
+              onTenureChange={setTenure}
+              onYearModeChange={setIsYearMode}
+              onCurrentRateChange={handleCurrentRateChange}
+              onEmiInputModeChange={handleEmiInputModeChange}
+              onEmiInputChange={setEmiInput}
+            />
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[10px] font-extrabold text-foreground tracking-widest uppercase whitespace-nowrap">Compare &amp; Optimise</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <ComparisonInputs
+            currentRate={currentRate}
+            currentEMI={baseEMI}
+            newRate={newRate}
+            extraPayment={extraPayment}
+            frequency={frequency}
+            lumpSumYear={lumpSumYear}
+            tenure={effectiveTenure}
+            newTenure={newTenure}
+            isYearMode={isYearMode}
+            emiMultiplier={emiMultiplier}
+            extraPaymentMode={extraPaymentMode}
+            extraEmiCount={extraEmiCount}
+            onNewRateChange={setNewRate}
+            onNewTenureChange={setNewTenure}
+            onYearModeChange={setIsYearMode}
+            onExtraPaymentChange={setExtraPayment}
+            onFrequencyChange={setFrequency}
+            onLumpSumYearChange={setLumpSumYear}
+            onEmiMultiplierChange={setEmiMultiplier}
+            onExtraPaymentModeChange={setExtraPaymentMode}
+            onExtraEmiCountChange={setExtraEmiCount}
+          />
+        </aside>
+
+        {/* Main — results */}
+        <main className="w-full lg:w-3/5 min-w-0 px-4 py-6 md:px-8 md:py-8 xl:px-10 space-y-6">
+          <div className="space-y-4">
+            <p className="text-xs font-bold text-foreground uppercase tracking-wider">Impact</p>
+            <LoanMetrics
+              metrics={metrics}
+              loanAmount={loanAmount}
+              currentRate={currentRate}
+              newRate={newRate}
+              tenure={effectiveTenure}
+              newTenureInput={newTenure}
+              extraPayment={resolvedPeriodicExtra}
+              frequency={frequency}
+              lumpSumYear={lumpSumYear}
+              emiInputMode={emiInputMode}
+              setEMI={emiInput}
+            />
+          </div>
+
           <Card>
-            <CardContent className="p-4 space-y-4">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Current Loan</p>
-              <PrimaryInputs
-                loanAmount={loanAmount}
-                tenure={tenure}
-                effectiveTenure={effectiveTenure}
-                isYearMode={isYearMode}
-                currentRate={currentRate}
-                emiInputMode={emiInputMode}
-                emiInput={emiInput}
-                computedEMI={baseEMI}
-                onLoanAmountChange={setLoanAmount}
-                onTenureChange={setTenure}
-                onYearModeChange={setIsYearMode}
-                onCurrentRateChange={handleCurrentRateChange}
-                onEmiInputModeChange={handleEmiInputModeChange}
-                onEmiInputChange={setEmiInput}
-              />
-              <LoanSummary
-                currentEMI={metrics.currentEMI || 0}
-                totalInterest={(metrics.currentEMI || 0) * effectiveTenure - loanAmount}
-                totalAmount={(metrics.currentEMI || 0) * effectiveTenure}
-                loanAmount={loanAmount}
-                emiInputMode={emiInputMode}
-                effectiveTenure={effectiveTenure}
-              />
+            <CardContent className="p-3 space-y-3">
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">Current Loan</p>
               <YearlyBreakdownChart data={yearlyData} />
             </CardContent>
           </Card>
 
-          {/* Card 2 — Compare & Optimise */}
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Compare & Optimise</p>
-              <ComparisonInputs
-                currentRate={currentRate}
-                currentEMI={baseEMI}
-                newRate={newRate}
-                extraPayment={extraPayment}
-                frequency={frequency}
-                lumpSumYear={lumpSumYear}
-                tenure={effectiveTenure}
-                emiMultiplier={emiMultiplier}
-                extraPaymentMode={extraPaymentMode}
-                extraEmiCount={extraEmiCount}
-                onNewRateChange={setNewRate}
-                onExtraPaymentChange={setExtraPayment}
-                onFrequencyChange={setFrequency}
-                onLumpSumYearChange={setLumpSumYear}
-                onEmiMultiplierChange={setEmiMultiplier}
-                onExtraPaymentModeChange={setExtraPaymentMode}
-                onExtraEmiCountChange={setExtraEmiCount}
-              />
-              <LoanMetrics
-                metrics={metrics}
-                loanAmount={loanAmount}
-                currentRate={currentRate}
-                newRate={newRate}
-                tenure={effectiveTenure}
-                extraPayment={resolvedPeriodicExtra}
-                frequency={frequency}
-                lumpSumYear={lumpSumYear}
-                emiInputMode={emiInputMode}
-                setEMI={emiInput}
-              />
-            </CardContent>
-          </Card>
-        </div>
+          {/* Balance Transfer Cost Analyser */}
+          {/* <BalanceTransferAnalyser
+            loanAmount={loanAmount}
+            currentEMI={metrics.currentEMI || 0}
+            newEMI={metrics.newEMI || 0}
+            interestSaving={metrics.interestSaving || 0}
+          /> */}
 
-        {/* Balance Transfer Cost Analyser */}
-        <BalanceTransferAnalyser
-          loanAmount={loanAmount}
-          currentEMI={metrics.currentEMI || 0}
-          newEMI={metrics.newEMI || 0}
-          interestSaving={metrics.interestSaving || 0}
-        />
-
-        {/* Amortization schedules side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <AmortizationTable title="Base Loan" schedule={baseSchedule} />
-          <AmortizationTable title="Optimised Loan" schedule={optimisedSchedule} />
-        </div>
+          {/* Amortization schedules, both under one dropdown */}
+          <AmortizationTable
+            schedules={[
+              { title: 'Base Loan', schedule: baseSchedule },
+              { title: 'Optimised Loan', schedule: optimisedSchedule },
+            ]}
+          />
+        </main>
       </div>
     </div>
   );

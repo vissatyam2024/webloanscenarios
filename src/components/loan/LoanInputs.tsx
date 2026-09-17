@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { RotateCcw } from 'lucide-react';
 import { EditableField } from '@/components/ui/EditableField';
 import { FrequencyType } from '@/types/loan.types';
@@ -60,7 +61,7 @@ export const PrimaryInputs: React.FC<PrimaryInputsProps> = ({
     : `${effectiveTenure} months`;
 
   return (
-    <div className="space-y-4">
+    <div className="p-3 rounded-xl bg-secondary/40 space-y-3">
         {/* Loan Amount */}
         <div className="space-y-2">
           <EditableField
@@ -83,28 +84,14 @@ export const PrimaryInputs: React.FC<PrimaryInputsProps> = ({
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             Loan Term
           </span>
-          <div className="flex rounded border border-border overflow-hidden text-xs">
-            <button
-              className={`px-3 py-1 font-medium transition-colors ${
-                emiInputMode === 'tenure'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:text-foreground'
-              }`}
-              onClick={() => onEmiInputModeChange('tenure')}
-            >
-              Set Tenure
-            </button>
-            <button
-              className={`px-3 py-1 font-medium transition-colors ${
-                emiInputMode === 'emi'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:text-foreground'
-              }`}
-              onClick={() => onEmiInputModeChange('emi')}
-            >
-              Set EMI
-            </button>
-          </div>
+          <ToggleGroup
+            type="single"
+            value={emiInputMode}
+            onValueChange={(v) => v && onEmiInputModeChange(v as 'tenure' | 'emi')}
+          >
+            <ToggleGroupItem value="tenure">Set Tenure</ToggleGroupItem>
+            <ToggleGroupItem value="emi">Set EMI</ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {/* Tenure field */}
@@ -160,7 +147,7 @@ export const PrimaryInputs: React.FC<PrimaryInputsProps> = ({
             </>
           ) : (
             /* Derived tenure (read-only) when in EMI mode */
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-border/50">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/40 border border-border/50">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">Tenure</span>
                 <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium">calc</span>
@@ -202,7 +189,7 @@ export const PrimaryInputs: React.FC<PrimaryInputsProps> = ({
             </>
           ) : (
             /* Derived EMI (read-only) when in tenure mode */
-            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-border/50">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/40 border border-border/50">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-muted-foreground">Monthly EMI</span>
                 <span className="text-xs px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium">calc</span>
@@ -240,10 +227,14 @@ interface ComparisonInputsProps {
   frequency: FrequencyType;
   lumpSumYear: number;
   tenure: number;
+  newTenure: number;
+  isYearMode: boolean;
   emiMultiplier: number;
   extraPaymentMode: 'amount' | 'emi';
   extraEmiCount: number;
   onNewRateChange: (value: number) => void;
+  onNewTenureChange: (value: number) => void;
+  onYearModeChange: (value: boolean) => void;
   onExtraPaymentChange: (value: number) => void;
   onFrequencyChange: (value: FrequencyType) => void;
   onLumpSumYearChange: (value: number) => void;
@@ -262,10 +253,14 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
   frequency,
   lumpSumYear,
   tenure,
+  newTenure,
+  isYearMode,
   emiMultiplier,
   extraPaymentMode,
   extraEmiCount,
   onNewRateChange,
+  onNewTenureChange,
+  onYearModeChange,
   onExtraPaymentChange,
   onFrequencyChange,
   onLumpSumYearChange,
@@ -277,7 +272,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
   const monthlyMultiplierExtra = Math.round((emiMultiplier - 1) * currentEMI);
 
   return (
-    <div className="p-4 rounded-xl bg-white/10 space-y-4">
+    <div className="p-3 rounded-xl bg-secondary/40 space-y-3">
         {/* New Rate */}
         <div className="space-y-2">
           <EditableField
@@ -302,6 +297,55 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
             max={15}
             step={0.05}
             onValueChange={([v]) => onNewRateChange(v)}
+          />
+        </div>
+
+        {/* New Tenure */}
+        <div className="space-y-2">
+          <EditableField
+            label="New Tenure"
+            value={isYearMode ? newTenure / 12 : newTenure}
+            type="tenure"
+            isYearMode={isYearMode}
+            onEdit={(v) => {
+              if (isYearMode) {
+                const years = Math.min(35, Math.max(1, v));
+                onNewTenureChange(Math.round(years * 12));
+              } else {
+                const months = Math.min(420, Math.max(1, v));
+                onNewTenureChange(months);
+              }
+            }}
+            action={
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={isYearMode}
+                  onCheckedChange={onYearModeChange}
+                />
+                <span className="text-sm">{isYearMode ? 'Years' : 'Months'}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onNewTenureChange(tenure)}
+                  className="h-6 px-2"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </Button>
+              </div>
+            }
+          />
+          <Slider
+            value={[isYearMode ? newTenure / 12 : newTenure]}
+            min={1}
+            max={isYearMode ? 35 : 420}
+            step={isYearMode ? 0.083 : 1}
+            onValueChange={([v]) => {
+              if (isYearMode) {
+                onNewTenureChange(Math.round(v * 12));
+              } else {
+                onNewTenureChange(v);
+              }
+            }}
           />
         </div>
 
@@ -331,20 +375,14 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-foreground">Extra Payment</span>
-            <div className="flex rounded border border-border overflow-hidden text-xs">
-              <button
-                className={`px-2 py-1 font-medium transition-colors ${extraPaymentMode === 'amount' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground'}`}
-                onClick={() => onExtraPaymentModeChange('amount')}
-              >
-                ₹ Amount
-              </button>
-              <button
-                className={`px-2 py-1 font-medium transition-colors ${extraPaymentMode === 'emi' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground'}`}
-                onClick={() => onExtraPaymentModeChange('emi')}
-              >
-                × EMIs
-              </button>
-            </div>
+            <ToggleGroup
+              type="single"
+              value={extraPaymentMode}
+              onValueChange={(v) => v && onExtraPaymentModeChange(v as 'amount' | 'emi')}
+            >
+              <ToggleGroupItem value="amount" className="px-2 py-1">₹ Amount</ToggleGroupItem>
+              <ToggleGroupItem value="emi" className="px-2 py-1">× EMIs</ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           {extraPaymentMode === 'amount' ? (
@@ -359,7 +397,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
                 <select
                   value={frequency}
                   onChange={e => onFrequencyChange(e.target.value as FrequencyType)}
-                  className="px-2 py-1 text-sm border rounded"
+                  className="h-9 px-2 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="quarterly">Quarterly</option>
@@ -386,7 +424,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
                       const val = Math.min(tenureYears, Math.max(1, parseInt(e.target.value) || 1));
                       onLumpSumYearChange(val);
                     }}
-                    className="w-16 px-2 py-1 text-sm border rounded"
+                    className="w-16 h-9 px-2 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                   <span className="text-sm text-muted-foreground">year{lumpSumYear !== 1 ? 's' : ''}</span>
                   {lumpSumYear >= tenureYears && (
@@ -402,7 +440,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
               <select
                 value={extraEmiCount}
                 onChange={e => onExtraEmiCountChange(parseFloat(e.target.value))}
-                className="px-2 py-1 text-sm border rounded"
+                className="h-9 px-2 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 {EMI_COUNT_OPTIONS.map(n => (
                   <option key={n} value={n}>{n === 0 ? '0 (off)' : `${n} EMI${n !== 1 ? 's' : ''}`}</option>
@@ -412,7 +450,7 @@ export const ComparisonInputs: React.FC<ComparisonInputsProps> = ({
               <select
                 value={frequency === 'lumpsum' ? 'yearly' : frequency}
                 onChange={e => onFrequencyChange(e.target.value as FrequencyType)}
-                className="px-2 py-1 text-sm border rounded"
+                className="h-9 px-2 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="monthly">month</option>
                 <option value="quarterly">quarter</option>

@@ -2,13 +2,15 @@
 
 import React, { useMemo } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { MetricCard } from '@/components/ui/MetricCard';
+import { ComparisonStat } from '@/components/ui/ComparisonStat';
+import ScenarioHero from './ScenarioHero';
 import LoanComparisonChart from './LoanComparisonChart';
 import { LoanMetrics as LoanMetricsType, FrequencyType } from '@/types/loan.types';
 import {
   generateAmortizationSchedule,
   generateSameEMIData,
-  generateCombinedImpactData
+  generateCombinedImpactData,
+  calculateSIPFutureValue
 } from '@/utils/calculations';
 import { formatCurrency } from '@/utils/formatters';
 import { chartColors } from '@/styles/theme';
@@ -29,12 +31,28 @@ const defaultMetrics: LoanMetricsType = {
   totalCurrentInterest: 0
 };
 
+const monthsLabel = (months: number): string => {
+  if (months <= 0) return '—';
+  const years = Math.floor(months / 12);
+  const remainingMonths = months % 12;
+  return remainingMonths > 0 ? `${years}y ${remainingMonths}m` : `${years}y`;
+};
+
+const secondaryRowClass = 'grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border rounded-xl border border-border overflow-hidden';
+
+const timeBadgeText = (months: number): string =>
+  months === 0 ? 'No change yet' : `${monthsLabel(Math.abs(months))} ${months > 0 ? 'sooner' : 'later'}`;
+
+const amountBadgeText = (delta: number): string =>
+  delta === 0 ? 'No change yet' : `${formatCurrency(Math.abs(delta))} ${delta > 0 ? 'saved' : 'more'}`;
+
 interface LoanMetricsProps {
   metrics: LoanMetricsType;
   loanAmount: number;
   currentRate: number;
   newRate: number;
   tenure: number;
+  newTenureInput: number;
   extraPayment: number;
   frequency: FrequencyType;
   lumpSumYear: number;
@@ -42,28 +60,13 @@ interface LoanMetricsProps {
   setEMI?: number;
 }
 
-const TenureCard: React.FC<{ title: string; months: number; subtext?: string }> = ({ title, months, subtext }) => {
-  const yrs = Math.floor(months / 12);
-  const mo = months % 12;
-  const label = months <= 0 ? '—' : mo > 0 ? `${yrs} yrs ${mo} mo` : `${yrs} yrs`;
-  return (
-    <div className="p-3 border border-border/40 rounded-lg">
-      <div className="text-sm font-medium text-muted-foreground">{title}</div>
-      <div className="text-xl font-extrabold">{label}</div>
-      {months > 0
-        ? <div className="text-xs text-muted-foreground">{months} months{subtext ? ` • ${subtext}` : ''}</div>
-        : subtext && <div className="text-xs text-muted-foreground">{subtext}</div>
-      }
-    </div>
-  );
-};
-
 export const LoanMetrics: React.FC<LoanMetricsProps> = ({
   metrics = defaultMetrics,
   loanAmount = 0,
   currentRate = 0,
   newRate = 0,
   tenure = 0,
+  newTenureInput = 0,
   extraPayment = 0,
   frequency = 'monthly',
   lumpSumYear = 1,
@@ -75,6 +78,18 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
 
   const frequencyMonths = frequency === 'monthly' ? 1 : frequency === 'quarterly' ? 3 : 12;
   const lumpSumTargetMonth = frequency === 'lumpsum' ? lumpSumYear * 12 : undefined;
+
+  const contextLine = `on ${formatCurrency(loanAmount)} for ${monthsLabel(tenure)} · ${currentRate.toFixed(2)}% → ${newRate.toFixed(2)}%`;
+
+  const extraPaymentPhrase = extraPayment > 0
+    ? frequency === 'lumpsum'
+      ? `+${formatCurrency(extraPayment)} lump sum in year ${lumpSumYear}`
+      : `+${formatCurrency(extraPayment)}/${frequency === 'monthly' ? 'mo' : frequency === 'quarterly' ? 'qtr' : 'yr'}`
+    : 'no extra payments yet';
+
+  const customTenureContextLine = `on ${formatCurrency(loanAmount)} · ${monthsLabel(tenure)} → ${monthsLabel(newTenureInput)} · ${currentRate.toFixed(2)}% → ${newRate.toFixed(2)}%`;
+  const extraPaymentContextLine = `on ${formatCurrency(loanAmount)} at ${currentRate.toFixed(2)}% · ${extraPaymentPhrase}`;
+  const combinedContextLine = `on ${formatCurrency(loanAmount)} · ${currentRate.toFixed(2)}% → ${newRate.toFixed(2)}% · ${extraPaymentPhrase}`;
 
   // Generate chart data for Same Tenure scenario
   const sameTenureData = useMemo(() => {
@@ -127,6 +142,61 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
     } catch { return 0; }
   }, [loanAmount, currentRate, newRate, tenure, emiInputMode, setEMI]);
 
+  // Custom Tenure scenario: new rate AND an independently chosen new tenure
+  // (e.g. a refinance offer that changes both), rather than reusing the
+  // current loan's tenure.
+  const customTenureMetrics = useMemo(() => {
+    if (!loanAmount || !newRate || !newTenureInput) {
+      return { customEMI: 0, customTotalInterest: 0, monthlyDiff: 0, interestDiff: 0 };
+    }
+    try {
+      const r = newRate / 12 / 100;
+      const customEMI = r === 0
+        ? loanAmount / newTenureInput
+        : loanAmount * r * Math.pow(1 + r, newTenureInput) / (Math.pow(1 + r, newTenureInput) - 1);
+      const customTotalInterest = customEMI * newTenureInput - loanAmount;
+      const oldEMI = emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0;
+      return {
+        customEMI: Math.round(customEMI),
+        customTotalInterest: Math.round(customTotalInterest),
+        monthlyDiff: Math.round(oldEMI - customEMI),
+        interestDiff: Math.round((safeMetrics.totalCurrentInterest || 0) - customTotalInterest),
+      };
+    } catch {
+      return { customEMI: 0, customTotalInterest: 0, monthlyDiff: 0, interestDiff: 0 };
+    }
+  }, [loanAmount, newRate, newTenureInput, emiInputMode, setEMI, safeMetrics.currentEMI, safeMetrics.totalCurrentInterest]);
+
+  // Generate chart data for Custom Tenure scenario (schedules can have
+  // different lengths, so pad the shorter one with nulls past its end)
+  const customTenureData = useMemo(() => {
+    if (!loanAmount || !currentRate || !newRate || !tenure || !newTenureInput) return [];
+
+    try {
+      const originalSchedule = generateAmortizationSchedule(loanAmount, currentRate, tenure);
+      const newSchedule = generateAmortizationSchedule(loanAmount, newRate, newTenureInput);
+      const maxMonths = Math.max(originalSchedule.length, newSchedule.length);
+
+      const data = [];
+      for (let i = 0; i < maxMonths; i++) {
+        const original = originalSchedule[i];
+        const modified = newSchedule[i];
+        data.push({
+          month: i + 1,
+          originalBalance: original ? original.balance : null,
+          modifiedBalance: modified ? modified.balance : null,
+          originalInterest: original ? original.cumulativeInterest : (originalSchedule[originalSchedule.length - 1]?.cumulativeInterest ?? 0),
+          modifiedInterest: modified ? modified.cumulativeInterest : (newSchedule[newSchedule.length - 1]?.cumulativeInterest ?? 0),
+          savings: (original ? original.balance : 0) - (modified ? modified.balance : 0)
+        });
+      }
+      return data;
+    } catch (error) {
+      console.error("Error generating customTenureData:", error);
+      return [];
+    }
+  }, [loanAmount, currentRate, newRate, tenure, newTenureInput]);
+
   // Generate chart data for Extra Payment scenario
   const extraPaymentData = useMemo(() => {
     if (!loanAmount || !newRate || !tenure) return [];
@@ -176,30 +246,74 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
 
       <TabsContent value="rateImpact">
         <Tabs defaultValue="sameTenure">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="sameTenure">Same Tenure</TabsTrigger>
-            <TabsTrigger value="sameEMI">Same EMI</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsTrigger value="sameTenure" className="pb-2 text-xs font-medium">Same Tenure</TabsTrigger>
+            <TabsTrigger value="sameEMI" className="pb-2 text-xs font-medium">Same EMI</TabsTrigger>
+            <TabsTrigger value="customTenure" className="pb-2 text-xs font-medium">Custom Tenure</TabsTrigger>
           </TabsList>
 
           <TabsContent value="sameTenure">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <MetricCard
-                  title="New EMI"
-                  value={safeMetrics.newEMI || 0}
-                  subtext={`vs ${formatCurrency(emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0)} (Old EMI)`}
-                />
-                <MetricCard
-                  title="Monthly Savings"
-                  value={safeMetrics.monthlySaving || 0}
-                  subtext="Reduction in EMI"
-                />
-                <MetricCard
-                  title="Interest Savings"
-                  value={safeMetrics.interestSaving || 0}
-                  subtext="Total interest saved"
-                />
-              </div>
+              {(() => {
+                const oldEMI = emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0;
+                const newEMI = safeMetrics.newEMI || 0;
+                const interestSaving = safeMetrics.interestSaving || 0;
+                const monthlySaving = safeMetrics.monthlySaving || 0;
+                const totalInterestOld = safeMetrics.totalCurrentInterest || 0;
+                const totalInterestNew = totalInterestOld - interestSaving;
+                const totalPayableOld = loanAmount + totalInterestOld;
+                const totalPayableNew = loanAmount + totalInterestNew;
+                const sip = calculateSIPFutureValue(monthlySaving, tenure);
+                const hero = (
+                  <ScenarioHero
+                    title={interestSaving >= 0 ? 'Interest Saving' : 'Extra Interest'}
+                    value={Math.abs(interestSaving)}
+                    improved={interestSaving >= 0}
+                    subtext={contextLine}
+                  />
+                );
+                return (
+                  <>
+                    {sip.futureValue > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        {hero}
+                        <ScenarioHero
+                          title="If Invested (12% p.a.)"
+                          value={sip.futureValue}
+                          improved={sip.futureValue >= interestSaving}
+                          subtext={`${formatCurrency(sip.totalInvested)} invested → ${formatCurrency(sip.totalGains)} gain`}
+                        />
+                      </div>
+                    ) : hero}
+                    <div className={secondaryRowClass}>
+                      <ComparisonStat
+                        title="Monthly EMI"
+                        oldValue={formatCurrency(oldEMI)}
+                        newValue={formatCurrency(newEMI)}
+                        improved={newEMI !== oldEMI ? newEMI < oldEMI : undefined}
+                        deltaText={`${formatCurrency(Math.abs(monthlySaving))}/mo ${monthlySaving >= 0 ? 'lower' : 'higher'}`}
+                        deltaImproved={monthlySaving >= 0}
+                      />
+                      <ComparisonStat
+                        title="Total Interest"
+                        oldValue={formatCurrency(totalInterestOld)}
+                        newValue={formatCurrency(totalInterestNew)}
+                        improved={totalInterestNew !== totalInterestOld ? totalInterestNew < totalInterestOld : undefined}
+                        deltaText={amountBadgeText(interestSaving)}
+                        deltaImproved={interestSaving >= 0}
+                      />
+                      <ComparisonStat
+                        title="Total Payable (Principal + Interest)"
+                        oldValue={formatCurrency(totalPayableOld)}
+                        newValue={formatCurrency(totalPayableNew)}
+                        improved={totalPayableNew !== totalPayableOld ? totalPayableNew < totalPayableOld : undefined}
+                        deltaText={amountBadgeText(totalPayableOld - totalPayableNew)}
+                        deltaImproved={totalPayableOld - totalPayableNew >= 0}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
               {sameTenureData.length > 0 && (
                 <LoanComparisonChart
                   data={sameTenureData}
@@ -216,23 +330,50 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
 
           <TabsContent value="sameEMI">
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <TenureCard
-                  title="New Tenure"
-                  months={safeMetrics.newTenure || 0}
-                  subtext={`With ${formatCurrency(emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0)} EMI`}
-                />
-                <TenureCard
-                  title="Time Saved"
-                  months={safeMetrics.tenureReduction || 0}
-                  subtext="Reduction in duration"
-                />
-                <MetricCard
-                  title="Interest Saved"
-                  value={sameEMIInterestSaved}
-                  subtext="By finishing earlier"
-                />
-              </div>
+              {(() => {
+                const newTenureMonths = safeMetrics.newTenure || 0;
+                const tenureReduction = safeMetrics.tenureReduction || 0;
+                const totalInterestOld = safeMetrics.totalCurrentInterest || 0;
+                const totalInterestNew = totalInterestOld - sameEMIInterestSaved;
+                const totalPayableOld = loanAmount + totalInterestOld;
+                const totalPayableNew = loanAmount + totalInterestNew;
+                return (
+                  <>
+                    <ScenarioHero
+                      title={sameEMIInterestSaved >= 0 ? 'Interest Saving' : 'Extra Interest'}
+                      value={Math.abs(sameEMIInterestSaved)}
+                      improved={sameEMIInterestSaved >= 0}
+                      subtext={contextLine}
+                    />
+                    <div className={secondaryRowClass}>
+                      <ComparisonStat
+                        title="Loan Tenure"
+                        oldValue={monthsLabel(tenure)}
+                        newValue={monthsLabel(newTenureMonths)}
+                        improved={newTenureMonths !== tenure ? newTenureMonths < tenure : undefined}
+                        deltaText={timeBadgeText(tenureReduction)}
+                        deltaImproved={tenureReduction >= 0}
+                      />
+                      <ComparisonStat
+                        title="Total Interest"
+                        oldValue={formatCurrency(totalInterestOld)}
+                        newValue={formatCurrency(totalInterestNew)}
+                        improved={totalInterestNew !== totalInterestOld ? totalInterestNew < totalInterestOld : undefined}
+                        deltaText={amountBadgeText(sameEMIInterestSaved)}
+                        deltaImproved={sameEMIInterestSaved >= 0}
+                      />
+                      <ComparisonStat
+                        title="Total Payable"
+                        oldValue={formatCurrency(totalPayableOld)}
+                        newValue={formatCurrency(totalPayableNew)}
+                        improved={totalPayableNew !== totalPayableOld ? totalPayableNew < totalPayableOld : undefined}
+                        deltaText={amountBadgeText(totalPayableOld - totalPayableNew)}
+                        deltaImproved={totalPayableOld - totalPayableNew >= 0}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
               {sameEMIData.length > 0 && (
                 <LoanComparisonChart
                   data={sameEMIData}
@@ -246,36 +387,145 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
               )}
             </div>
           </TabsContent>
+
+          <TabsContent value="customTenure">
+            <div className="space-y-6">
+              {(() => {
+                const oldEMI = emiInputMode === 'emi' && setEMI > 0 ? setEMI : safeMetrics.currentEMI || 0;
+                const { customEMI, customTotalInterest, interestDiff, monthlyDiff } = customTenureMetrics;
+                const totalInterestOld = safeMetrics.totalCurrentInterest || 0;
+                const sip = calculateSIPFutureValue(monthlyDiff, newTenureInput);
+                const hero = (
+                  <ScenarioHero
+                    title={interestDiff >= 0 ? 'Interest Saving' : 'Extra Interest'}
+                    value={Math.abs(interestDiff)}
+                    improved={interestDiff >= 0}
+                    subtext={customTenureContextLine}
+                  />
+                );
+                return (
+                  <>
+                    {sip.futureValue > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        {hero}
+                        <ScenarioHero
+                          title="Invest Instead (12% p.a.)"
+                          value={sip.futureValue}
+                          improved={sip.futureValue >= interestDiff}
+                          subtext={`${formatCurrency(sip.totalInvested)} invested → ${formatCurrency(sip.totalGains)} gain`}
+                        />
+                      </div>
+                    ) : hero}
+                    <div className={secondaryRowClass}>
+                      <ComparisonStat
+                        title="Monthly EMI"
+                        oldValue={formatCurrency(oldEMI)}
+                        newValue={formatCurrency(customEMI)}
+                        improved={customEMI !== oldEMI ? customEMI < oldEMI : undefined}
+                        deltaText={`${formatCurrency(Math.abs(monthlyDiff))}/mo ${monthlyDiff >= 0 ? 'lower' : 'higher'}`}
+                        deltaImproved={monthlyDiff >= 0}
+                      />
+                      <ComparisonStat
+                        title="Loan Tenure"
+                        oldValue={monthsLabel(tenure)}
+                        newValue={monthsLabel(newTenureInput)}
+                        deltaText={tenure === newTenureInput ? 'No change yet' : `${monthsLabel(Math.abs(tenure - newTenureInput))} ${tenure > newTenureInput ? 'shorter' : 'longer'}`}
+                      />
+                      <ComparisonStat
+                        title="Total Interest"
+                        oldValue={formatCurrency(totalInterestOld)}
+                        newValue={formatCurrency(customTotalInterest)}
+                        improved={customTotalInterest !== totalInterestOld ? customTotalInterest < totalInterestOld : undefined}
+                        deltaText={amountBadgeText(totalInterestOld - customTotalInterest)}
+                        deltaImproved={totalInterestOld - customTotalInterest >= 0}
+                      />
+                    </div>
+                  </>
+                );
+              })()}
+              {customTenureData.length > 0 && (
+                <LoanComparisonChart
+                  data={customTenureData}
+                  title="Loan Balance Comparison - Custom Tenure"
+                  lineConfig={[
+                    { dataKey: 'originalBalance', name: 'Original Loan', color: chartColors.original },
+                    { dataKey: 'modifiedBalance', name: 'New Offer', color: chartColors.optimised }
+                  ]}
+                  showSavings
+                />
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </TabsContent>
 
       <TabsContent value="extraPayment">
         <div className="space-y-6">
-          <div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <TenureCard
-                title="Time Saved"
-                months={safeMetrics.extraTenureReduction || 0}
-                subtext="Reduction in tenure"
+          {(() => {
+            const extraPaymentSaving = safeMetrics.extraPaymentSaving || 0;
+            const extraTenureReduction = safeMetrics.extraTenureReduction || 0;
+            const monthsWithExtra = safeMetrics.monthsWithExtra || 0;
+            const totalInterestOld = (safeMetrics.totalCurrentInterest || 0) - (safeMetrics.interestSaving || 0);
+            const totalInterestNew = safeMetrics.totalInterestWithExtra || 0;
+            const totalPayableOld = (loanAmount || 0) + totalInterestOld;
+            const totalPayableNew = (loanAmount || 0) + totalInterestNew;
+            // Horizon is the full original tenure, not the shortened payoff
+            // time — "invest instead" means you don't prepay, so the loan
+            // runs its normal course and the extra amount stays investable
+            // for the whole term.
+            const sip = frequency === 'monthly'
+              ? calculateSIPFutureValue(extraPayment, tenure)
+              : { futureValue: 0, totalInvested: 0, totalGains: 0 };
+            const hero = (
+              <ScenarioHero
+                title={extraPaymentSaving >= 0 ? 'Interest Saving' : 'Extra Interest'}
+                value={Math.abs(extraPaymentSaving)}
+                improved={extraPaymentSaving >= 0}
+                subtext={extraPaymentContextLine}
               />
-              <MetricCard
-                title="Interest Saved"
-                value={safeMetrics.extraPaymentSaving || 0}
-                subtext="Through extra payments"
-              />
-            
-              <MetricCard
-                title="Total Interest"
-                value={safeMetrics.totalInterestWithExtra || 0}
-                subtext="After extra payments"
-              />
-              <MetricCard
-                title="Total Amount"
-                value={(loanAmount || 0) + (safeMetrics.totalInterestWithExtra || 0)}
-                subtext="Principal + Interest"
-              />
-            </div>
-          </div>
+            );
+            return (
+              <>
+                {sip.futureValue > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                    {hero}
+                    <ScenarioHero
+                      title="Invest Instead (12% p.a.)"
+                      value={sip.futureValue}
+                      improved={sip.futureValue >= extraPaymentSaving}
+                      subtext={`${formatCurrency(sip.totalInvested)} invested → ${formatCurrency(sip.totalGains)} gain`}
+                    />
+                  </div>
+                ) : hero}
+                <div className={secondaryRowClass}>
+                  <ComparisonStat
+                    title="Payoff Time"
+                    oldValue={monthsLabel(tenure)}
+                    newValue={monthsLabel(monthsWithExtra)}
+                    improved={monthsWithExtra !== tenure ? monthsWithExtra < tenure : undefined}
+                    deltaText={timeBadgeText(extraTenureReduction)}
+                    deltaImproved={extraTenureReduction >= 0}
+                  />
+                  <ComparisonStat
+                    title="Total Interest"
+                    oldValue={formatCurrency(totalInterestOld)}
+                    newValue={formatCurrency(totalInterestNew)}
+                    improved={totalInterestNew !== totalInterestOld ? totalInterestNew < totalInterestOld : undefined}
+                    deltaText={amountBadgeText(extraPaymentSaving)}
+                    deltaImproved={extraPaymentSaving >= 0}
+                  />
+                  <ComparisonStat
+                    title="Total Payable"
+                    oldValue={formatCurrency(totalPayableOld)}
+                    newValue={formatCurrency(totalPayableNew)}
+                    improved={totalPayableNew !== totalPayableOld ? totalPayableNew < totalPayableOld : undefined}
+                    deltaText={amountBadgeText(totalPayableOld - totalPayableNew)}
+                    deltaImproved={totalPayableOld - totalPayableNew >= 0}
+                  />
+                </div>
+              </>
+            );
+          })()}
           {extraPaymentData.length > 0 && (
             <LoanComparisonChart
               data={extraPaymentData}
@@ -292,23 +542,51 @@ export const LoanMetrics: React.FC<LoanMetricsProps> = ({
 
       <TabsContent value="combined">
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <MetricCard
-              title="Total Savings"
-              value={safeMetrics.totalSaving || 0}
-              subtext="Combined interest savings"
-            />
-            <TenureCard
-              title="Total Time Saved"
-              months={(safeMetrics.tenureReduction || 0) + (safeMetrics.extraTenureReduction || 0)}
-              subtext="Overall reduction"
-            />
-            <MetricCard
-              title="Final Amount"
-              value={(loanAmount || 0) + (safeMetrics.totalInterestWithExtra || 0)}
-              subtext="Total loan cost"
-            />
-          </div>
+          {(() => {
+            const totalSaving = safeMetrics.totalSaving || 0;
+            const extraTenureReduction = safeMetrics.extraTenureReduction || 0;
+            const monthsWithExtra = safeMetrics.monthsWithExtra || 0;
+            const totalInterestOld = safeMetrics.totalCurrentInterest || 0;
+            const totalInterestNew = safeMetrics.totalInterestWithExtra || 0;
+            const totalPayableOld = (loanAmount || 0) + totalInterestOld;
+            const totalPayableNew = (loanAmount || 0) + totalInterestNew;
+            return (
+              <>
+                <ScenarioHero
+                  title={totalSaving >= 0 ? 'Total Savings' : 'Total Extra Cost'}
+                  value={Math.abs(totalSaving)}
+                  improved={totalSaving >= 0}
+                  subtext={combinedContextLine}
+                />
+                <div className={secondaryRowClass}>
+                  <ComparisonStat
+                    title="Payoff Time"
+                    oldValue={monthsLabel(tenure)}
+                    newValue={monthsLabel(monthsWithExtra)}
+                    improved={monthsWithExtra !== tenure ? monthsWithExtra < tenure : undefined}
+                    deltaText={timeBadgeText(extraTenureReduction)}
+                    deltaImproved={extraTenureReduction >= 0}
+                  />
+                  <ComparisonStat
+                    title="Total Interest"
+                    oldValue={formatCurrency(totalInterestOld)}
+                    newValue={formatCurrency(totalInterestNew)}
+                    improved={totalInterestNew !== totalInterestOld ? totalInterestNew < totalInterestOld : undefined}
+                    deltaText={amountBadgeText(totalSaving)}
+                    deltaImproved={totalSaving >= 0}
+                  />
+                  <ComparisonStat
+                    title="Total Payable"
+                    oldValue={formatCurrency(totalPayableOld)}
+                    newValue={formatCurrency(totalPayableNew)}
+                    improved={totalPayableNew !== totalPayableOld ? totalPayableNew < totalPayableOld : undefined}
+                    deltaText={amountBadgeText(totalPayableOld - totalPayableNew)}
+                    deltaImproved={totalPayableOld - totalPayableNew >= 0}
+                  />
+                </div>
+              </>
+            );
+          })()}
           {combinedData.length > 0 && (
             <LoanComparisonChart
               data={combinedData}

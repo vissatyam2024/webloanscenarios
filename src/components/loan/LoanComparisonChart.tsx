@@ -65,16 +65,24 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
     const extraPaymentApplied: number = payload[0]?.payload?.extraPaymentApplied ?? 0;
 
     return (
-      <div className="bg-card border border-border p-3 rounded-lg shadow-lg">
-        <p className="text-sm font-semibold mb-2">Month {label}</p>
-        {filteredPayload.map((entry) => (
-          <p key={entry.name} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {formatCurrency(entry.value ?? 0)}
-          </p>
-        ))}
+      <div className="bg-card border border-border p-3.5 rounded-xl shadow-lg min-w-[160px]">
+        <p className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wide mb-2">Month {label}</p>
+        <div className="flex flex-col gap-1">
+          {filteredPayload.map((entry) => (
+            <div key={entry.name} className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                {entry.name}
+              </span>
+              <span className="text-sm font-bold tabular-nums" style={{ color: entry.color }}>
+                {formatCurrency(entry.value ?? 0)}
+              </span>
+            </div>
+          ))}
+        </div>
         {extraPaymentApplied > 0 && (
-          <p className="text-sm font-semibold mt-2" style={{ color: chartColors.extraPayment }}>
-            ⬇ Extra Payment: {formatCurrency(extraPaymentApplied)}
+          <p className="text-xs font-bold mt-2 pt-2 border-t border-border" style={{ color: chartColors.extraPayment }}>
+            ↓ Extra Payment: {formatCurrency(extraPaymentApplied)}
           </p>
         )}
       </div>
@@ -109,8 +117,8 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
     return (
       <Card>
         <CardContent className="p-4">
-          <h3 className="text-lg font-bold mb-4">{title}</h3>
-          <div className="h-[300px] w-full flex items-center justify-center bg-secondary border rounded-md">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wide mb-4">{title}</h3>
+          <div className="h-[300px] w-full flex items-center justify-center bg-secondary border border-border/40 rounded-lg">
             <p className="text-muted-foreground">No data available for chart</p>
           </div>
         </CardContent>
@@ -121,28 +129,35 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
   return (
     <Card>
       <CardContent className="p-4">
-        <h3 className="text-lg font-bold mb-4">{title}</h3>
+        <h3 className="text-xs font-bold text-foreground uppercase tracking-wide mb-4">{title}</h3>
         <div style={{ height: `${height}px`, width: '100%' }}>
           <ResponsiveContainer>
             <LineChart
               data={data}
-              margin={{ top: 15, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" strokeWidth={0.5} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.10)" strokeWidth={0.5} />
               <XAxis
                 dataKey="month"
-                label={{ value: 'Months', position: 'insideBottom', offset: -2 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
+                tickMargin={8}
               />
               <YAxis
                 tickFormatter={formatCurrency}
-                label={{ value: 'Amount (₹)', angle: -90, position: 'insideLeft', offset: -12 }}
-                axisLine={{ stroke: 'rgba(255,255,255,0.25)' }}
-                tickLine={{ stroke: 'rgba(255,255,255,0.25)' }}
+                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                axisLine={false}
+                tickLine={false}
+                width={64}
+                tickCount={5}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }} />
+              <Legend
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 12, paddingTop: 12, color: 'hsl(var(--muted-foreground))' }}
+              />
 
               {lineConfig.map((config, idx) => (
                 <Line
@@ -151,7 +166,9 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
                   dataKey={config.dataKey}
                   name={config.name}
                   stroke={config.color}
+                  strokeWidth={2}
                   dot={idx === 1 ? <ExtraPaymentDot /> : false}
+                  activeDot={{ r: 4 }}
                   connectNulls
                 />
               ))}
@@ -160,26 +177,26 @@ const LoanComparisonChart: React.FC<LoanComparisonChartProps> = ({
                 <>
                   {data[0]?.originalInterest !== undefined && (
                     <Line type="monotone" dataKey="originalInterest" name="Original Interest"
-                      stroke={chartColors.interest} dot={false} connectNulls />
+                      stroke={chartColors.interest} strokeWidth={2} dot={false} connectNulls />
                   )}
                   {data[0]?.modifiedInterest !== undefined && (
                     <Line type="monotone" dataKey="modifiedInterest" name="Modified Interest"
-                      stroke={chartColors.extraPayment} dot={false} connectNulls />
+                      stroke={chartColors.extraPayment} strokeWidth={2} dot={false} connectNulls />
                   )}
                   {data[0]?.rateChangeInterest !== undefined && (
                     <Line type="monotone" dataKey="rateChangeInterest" name="Rate Change Interest"
-                      stroke={chartColors.extraPayment} dot={false} connectNulls />
+                      stroke={chartColors.extraPayment} strokeWidth={2} dot={false} connectNulls />
                   )}
                   {data[0]?.combinedInterest !== undefined && (
                     <Line type="monotone" dataKey="combinedInterest" name="Combined Interest"
-                      stroke={chartColors.original} dot={false} connectNulls />
+                      stroke={chartColors.original} strokeWidth={2} dot={false} connectNulls />
                   )}
                 </>
               )}
 
               {showSavings && data[0]?.savings !== undefined && (
                 <Line type="monotone" dataKey="savings" name="Savings Gap"
-                  stroke={chartColors.savings} dot={false} strokeDasharray="5 5" connectNulls />
+                  stroke={chartColors.savings} strokeWidth={2} dot={false} strokeDasharray="5 5" connectNulls />
               )}
             </LineChart>
           </ResponsiveContainer>

@@ -95,7 +95,7 @@ const SummaryCard: React.FC<{
   <div className="p-3 border border-border rounded-lg">
     <div className="text-sm font-medium text-muted-foreground">{label}</div>
     <div
-      className="text-xl font-extrabold mt-0.5"
+      className="text-lg font-semibold mt-0.5"
       style={{ color: color ?? 'hsl(var(--foreground))' }}
     >
       {value}
@@ -159,7 +159,7 @@ const BalanceTransferAnalyser: React.FC<BalanceTransferAnalyserProps> = ({
 
   return (
     <Card>
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-3 space-y-3">
         {/* Header */}
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           Balance Transfer Cost Analyser
